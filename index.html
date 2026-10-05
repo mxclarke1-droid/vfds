@@ -1,0 +1,409 @@
+```html
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Santa Tracker - North Pole Test</title>
+
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+
+  <style>
+    body {
+      margin: 0;
+      overflow: hidden;
+      background: black;
+      font-family: Arial, sans-serif;
+    }
+
+    #status {
+      position: absolute;
+      top: 15px;
+      left: 15px;
+      z-index: 10;
+      color: white;
+      background: rgba(0,0,0,0.8);
+      padding: 10px 15px;
+      border-radius: 8px;
+      font-size: 16px;
+    }
+  </style>
+</head>
+
+<body>
+
+<div id="status">EARTH WORKING — LOADING SLEIGH...</div>
+
+<script>
+
+// ==========================================
+// SCENE
+// ==========================================
+
+const scene = new THREE.Scene();
+
+
+// ==========================================
+// EARTH
+// ==========================================
+
+const EARTH_RADIUS = 2;
+
+const earthGeometry = new THREE.SphereGeometry(
+  EARTH_RADIUS,
+  64,
+  64
+);
+
+const earthMaterial = new THREE.MeshPhongMaterial({
+  color: 0x2277cc
+});
+
+const earth = new THREE.Mesh(
+  earthGeometry,
+  earthMaterial
+);
+
+scene.add(earth);
+
+
+// ==========================================
+// CAMERA
+// ==========================================
+
+const camera = new THREE.PerspectiveCamera(
+  45,
+  window.innerWidth / window.innerHeight,
+  0.1,
+  1000
+);
+
+// Look toward the North Pole
+camera.position.set(0, 4.5, 6);
+
+camera.lookAt(
+  0,
+  0.8,
+  0
+);
+
+
+// ==========================================
+// RENDERER
+// ==========================================
+
+const renderer = new THREE.WebGLRenderer({
+  antialias: true
+});
+
+renderer.setSize(
+  window.innerWidth,
+  window.innerHeight
+);
+
+renderer.setPixelRatio(
+  Math.min(window.devicePixelRatio, 2)
+);
+
+document.body.appendChild(renderer.domElement);
+
+
+// ==========================================
+// CONTROLS
+// ==========================================
+
+const controls = new THREE.OrbitControls(
+  camera,
+  renderer.domElement
+);
+
+controls.enableDamping = true;
+controls.dampingFactor = 0.05;
+
+controls.minDistance = 3.5;
+controls.maxDistance = 12;
+
+controls.target.set(
+  0,
+  0.8,
+  0
+);
+
+
+// ==========================================
+// LIGHTING
+// ==========================================
+
+const ambientLight = new THREE.AmbientLight(
+  0xffffff,
+  1.5
+);
+
+scene.add(ambientLight);
+
+
+const directionalLight = new THREE.DirectionalLight(
+  0xffffff,
+  2
+);
+
+directionalLight.position.set(
+  5,
+  8,
+  5
+);
+
+scene.add(directionalLight);
+
+
+// ==========================================
+// EARTH TEXTURE
+// ==========================================
+
+const textureLoader = new THREE.TextureLoader();
+
+textureLoader.load(
+
+  "https://threejs.org/examples/textures/planets/earth_atmos_2048.jpg",
+
+  function(texture) {
+
+    earth.material.map = texture;
+    earth.material.color.set(0xffffff);
+    earth.material.needsUpdate = true;
+
+  },
+
+  undefined,
+
+  function(error) {
+
+    console.log(
+      "Earth texture failed:",
+      error
+    );
+
+  }
+);
+
+
+// ==========================================
+// SANTA SLEIGH
+// ==========================================
+
+const loader = new THREE.GLTFLoader();
+
+loader.load(
+
+  "santa_-_norad_santa_tracker.glb",
+
+  function(gltf) {
+
+    console.log("SLEIGH LOADED!");
+
+    const santa = gltf.scene;
+
+
+    // ======================================
+    // SCALE SANTA
+    // ======================================
+
+    const box =
+      new THREE.Box3().setFromObject(santa);
+
+    const size =
+      new THREE.Vector3();
+
+    box.getSize(size);
+
+    const biggestDimension =
+      Math.max(
+        size.x,
+        size.y,
+        size.z
+      );
+
+    const desiredSize = 0.55;
+
+    const scale =
+      desiredSize / biggestDimension;
+
+    santa.scale.set(
+      scale,
+      scale,
+      scale
+    );
+
+
+    // ======================================
+    // CENTER THE MODEL
+    // ======================================
+
+    const centeredBox =
+      new THREE.Box3().setFromObject(santa);
+
+    const center =
+      centeredBox.getCenter(
+        new THREE.Vector3()
+      );
+
+    santa.position.sub(center);
+
+
+    // ======================================
+    // NORTH POLE POSITION
+    // ======================================
+
+    // Latitude: 89 degrees North
+    // Longitude: 0 degrees
+
+    const latitude = THREE.MathUtils.degToRad(89);
+    const longitude = THREE.MathUtils.degToRad(0);
+
+
+    // Position slightly ABOVE Earth
+    const santaRadius = 2.28;
+
+
+    const x =
+      santaRadius *
+      Math.cos(latitude) *
+      Math.cos(longitude);
+
+    const y =
+      santaRadius *
+      Math.sin(latitude);
+
+    const z =
+      santaRadius *
+      Math.cos(latitude) *
+      Math.sin(longitude);
+
+
+    santa.position.set(
+      x,
+      y,
+      z
+    );
+
+
+    // ======================================
+    // ORIENT SLEIGH
+    // ======================================
+
+    santa.rotation.y = -Math.PI / 2;
+
+
+    // ======================================
+    // ADD SANTA TO SCENE
+    // ======================================
+
+    scene.add(santa);
+
+
+    // ======================================
+    // STATUS
+    // ======================================
+
+    document.getElementById("status").innerHTML =
+      "EARTH WORKING ✓ &nbsp; SLEIGH LOADED ✓ &nbsp; NORTH POLE";
+
+
+    console.log(
+      "Santa position:",
+      santa.position
+    );
+
+  },
+
+
+  // ========================================
+  // LOADING PROGRESS
+  // ========================================
+
+  function(xhr) {
+
+    if (xhr.total) {
+
+      const percent =
+        Math.round(
+          (xhr.loaded / xhr.total) * 100
+        );
+
+      document.getElementById("status").innerHTML =
+        "EARTH WORKING ✓ &nbsp; LOADING SLEIGH " +
+        percent +
+        "%";
+
+    }
+
+  },
+
+
+  // ========================================
+  // ERROR
+  // ========================================
+
+  function(error) {
+
+    console.error(
+      "SLEIGH FAILED TO LOAD:",
+      error
+    );
+
+    document.getElementById("status").innerHTML =
+      "EARTH WORKING ✓ &nbsp; SLEIGH FAILED TO LOAD";
+
+  }
+
+);
+
+
+// ==========================================
+// ANIMATION
+// ==========================================
+
+function animate() {
+
+  requestAnimationFrame(animate);
+
+  controls.update();
+
+  renderer.render(
+    scene,
+    camera
+  );
+
+}
+
+animate();
+
+
+// ==========================================
+// WINDOW RESIZE
+// ==========================================
+
+window.addEventListener(
+  "resize",
+  function() {
+
+    camera.aspect =
+      window.innerWidth /
+      window.innerHeight;
+
+    camera.updateProjectionMatrix();
+
+    renderer.setSize(
+      window.innerWidth,
+      window.innerHeight
+    );
+
+  }
+);
+
+</script>
+
+</body>
+</html>
+```
